@@ -82,61 +82,6 @@ fun Content.store(entry: Entry, indent: Indent) =
 					.writeBytes(content)
 		}
 
-fun Content.decodeMods() = when {
-	name.isModule() -> moduleToFlac().decodeFlacs().encodeMp3s()
-	else -> this
-}
-
-val lameLocation = "/usr/local/bin/lame"
-
-fun Content.encodeMp3s(): Content {
-	val inputFile = File.createTempFile("wav-$name-", ".wav")
-			.apply { deleteOnExit() }
-			.apply { writeBytes(content) }
-	val outputFile = File.createTempFile("mp3-$name-", ".mp3").apply { deleteOnExit() }
-	val standardOutput = File.createTempFile("mp3-$name-", ".txt").apply { deleteOnExit() }
-	ProcessBuilder()
-			.command(lameLocation, "--preset", "standard", "-q", "0", "-p", inputFile.absolutePath, outputFile.absolutePath)
-			.redirectErrorStream(true)
-			.redirectOutput(standardOutput)
-			.start().waitFor()
-	return Content(entry, name.removeSuffix(".wav") + ".mp3", outputFile.readBytes())
-}
-
-val flacLocation = "/usr/local/bin/flac"
-
-fun Content.decodeFlacs(): Content {
-	val inputFile = File.createTempFile("flac-$name-", ".flac")
-			.apply { deleteOnExit() }
-			.apply { writeBytes(content) }
-	val outputFile = File.createTempFile("wav-$name-", ".wav").apply { deleteOnExit() }
-	val standardOutput = File.createTempFile("mp3-$name-", ".txt").apply { deleteOnExit() }
-	ProcessBuilder()
-			.command(flacLocation, "--decode", "--force", "--output-name=${outputFile.absolutePath}", inputFile.absolutePath)
-			.redirectErrorStream(true)
-			.redirectOutput(standardOutput)
-			.start().waitFor()
-	return Content(entry, name.removeSuffix(".flac") + ".wav", outputFile.readBytes())
-}
-
-val openMptLocation = "/Users/bombe/bin/openmpt123"
-
-fun Content.moduleToFlac(): Content {
-	val inputFile = File.createTempFile("$name-", "-$name")
-			.apply { deleteOnExit() }
-			.apply {
-				writeBytes(content)
-			}
-	val standardOutput = File.createTempFile("mp3-$name-", ".txt").apply { deleteOnExit() }
-	ProcessBuilder()
-			.command(openMptLocation, "--render", "--stereo", "200", "--force", "--output-type", "flac", inputFile.path)
-			.redirectErrorStream(true)
-			.redirectOutput(standardOutput)
-			.start()
-			.waitFor()
-	return Content(entry, name + ".flac", File(inputFile.path + ".flac").apply { deleteOnExit() }.readBytes())
-}
-
 fun Content.getRelevantFiles(): Sequence<Content> =
 		when {
 			name.toLowerCase().endsWith(".zip") -> ZipInputStream(content.inputStream()).use { zipInputStream ->
