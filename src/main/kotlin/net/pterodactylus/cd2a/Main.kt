@@ -235,7 +235,7 @@ fun Demoparty.loadCompos() =
 				?.let {
 					it.select("section[class*=competition]")
 							.map { section ->
-								Compo(this@loadCompos, section.select("h4").text())
+								Compo(this@loadCompos, section.select("h4").text().clean())
 										.let { compo ->
 											compo.copy(entries = section.select("tr[class=result]")
 													.map {
@@ -252,6 +252,8 @@ fun Demoparty.loadCompos() =
 				}
 				?.let { copy(compos = it) }
 				?: this
+
+fun String.clean() = replace(Regex("( / |/)"), " & ")
 
 fun getDemoparties(): Collection<Demoparty> =
 		"https://demozoo.org/parties/by_date/"
