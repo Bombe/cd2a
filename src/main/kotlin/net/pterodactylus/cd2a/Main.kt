@@ -1,12 +1,14 @@
 package net.pterodactylus.cd2a
 
+import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
 import org.jsoup.Jsoup
 import java.io.File
 import java.net.URLDecoder
+import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.Arrays
+import java.nio.file.StandardCopyOption
 import java.util.zip.ZipInputStream
 
 val baseDirectory = "/Users/bombe/Temp/dp"
@@ -45,22 +47,24 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 		val downloadLinks = entry.downloadLinks()
 		indent.advance {
 			println("Download Links: ${downloadLinks.size}")
-			val content = entry.download(downloadLinks) ?: return@advance
-			val relevantFiles = content.getRelevantFiles()
-					.toList()
-					.let {
-						when {
-							it.size > 1 -> it.filterNot { it.name.isUrl() }
-							else -> it
-						}
-					}
+			val youtubeLink = entry.download(downloadLinks.filter { it.isYoutubeLink() })
+			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
+			val relevantFiles = listOf(content).filterNotNull().flatMap { it.getRelevantFiles().toList() }
 			println("Relevant Files: ${relevantFiles.size}")
-			if (relevantFiles.isEmpty()) return@advance
-			println("Storing Files...")
-			relevantFiles.forEach { it.store(entry, this) }
+			if (relevantFiles.isEmpty()) {
+				if (youtubeLink == null) return@advance
+				println("Storing Youtube Link...")
+				youtubeLink.store(entry, this)
+			} else {
+				println("Storing Files...")
+				relevantFiles.forEach { it.store(entry, this) }
+				youtubeLink?.remove()
+			}
 		}
 	}
 }
+
+fun String.isYoutubeLink() = startsWith("http://www.youtube.com/") || startsWith("https://www.youtube.com/")
 
 fun Content.store(entry: Entry, indent: Indent) =
 		with(indent) {
@@ -78,35 +82,46 @@ fun Content.store(entry: Entry, indent: Indent) =
 							}
 						}.last().second
 					}
-					.also { println("Storing ${content.size} Bytes as ${it.path}.") }
-					.writeBytes(content)
+					.let {
+						Files.move(file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
+					}
 		}
 
-fun Content.getRelevantFiles(): Sequence<Content> =
+fun Content.getRelevantFiles(): List<Content> =
 		when {
-			name.toLowerCase().endsWith(".zip") -> ZipInputStream(content.inputStream()).use { zipInputStream ->
+			name.toLowerCase().endsWith(".zip") -> ZipInputStream(file.inputStream()).use { zipInputStream ->
 				generateSequence {
-					tryOrNull {
+					tryOrNull(true) {
 						zipInputStream.nextEntry?.let { zipEntry ->
-							Content(entry, zipEntry.name.split("/").last(), zipInputStream.readBytes())
+							tempFile("$name-", "-${zipEntry.name.split("/").last()}")
+									.apply { outputStream().use { zipInputStream.copyTo(it) } }
+									.let { Content(entry, zipEntry.name.replace("/", "-"), it) }
 						}
 					}
 				}
+						.toList()
+						.also { this@getRelevantFiles.remove() }
 						.flatMap { it.getRelevantFiles() }
 			}
-			name.isMusic() -> sequenceOf(this)
-			name.isModule() -> sequenceOf(this)
-			name.isSid() -> sequenceOf(this)
-			name.isUrl() -> sequenceOf(this)
-			else -> emptySequence()
+			name.isMusic() -> listOf(this)
+			name.isModule() -> listOf(this)
+			name.isSid() -> listOf(this)
+			name.isUrl() -> listOf(this)
+			name.isVideo() -> listOf(this)
+			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
+
+fun Content.remove() {
+	file.delete()
+}
+
+fun String.isVideo() = toLowerCase()
+		.split(".").last() in listOf("mp4", "mpg", "mkv", "avi")
 
 fun String.isUrl() = toLowerCase().endsWith(".url")
 
 fun String.isSid() = toLowerCase()
 		.split(".").last() in listOf("sid", "psid", "prg", "d64")
-
-fun String.isFlac() = toLowerCase().endsWith(".flac")
 
 fun String.isMusic() = toLowerCase()
 		.split(".").last() in listOf("mp3", "ogg", "flac", "opus", "aac", "m4a", "wav")
@@ -124,14 +139,24 @@ fun Entry.download(links: List<String>) =
 		links.fold(null as Content?) { previous, link ->
 			previous ?: tryOrNull {
 				when {
-					"youtube.com" in link -> Content(this, name + ".url", link.toByteArray())
-					else -> link.httpGet().response()
-							.takeIf { it.third.component2() == null }
-							?.third?.component1()
-							?.let { Content(this, link.split("/").last().decode(), it) }
+					"youtube.com" in link ->
+						tempFile("$name-", ".url")
+								.apply { writeBytes(link.toByteArray()) }
+								.let { Content(this, name + ".url", it) }
+					else ->
+						tempFile("$name-", "-${link.split("/").last()}")
+								.let { tempFile ->
+									Fuel.download(link).destination { _, _ -> tempFile }
+											.response()
+											.takeIf { it.third.component2() == null }
+											?.let { Content(this, link.split("/").last().decode(), tempFile) }
+								}
 				}
 			}
 		}
+
+fun tempFile(prefix: String = "", suffix: String = "", directory: String = baseDirectory) =
+		File.createTempFile(prefix, suffix, File(directory))!!
 
 fun String.decode() = URLDecoder.decode(this, "UTF-8")!!
 
@@ -142,16 +167,7 @@ fun <R> tryOrNull(silent: Boolean = true, block: () -> R): R? = try {
 	null
 }
 
-data class Content(val entry: Entry, val name: String, val content: ByteArray) {
-	override fun hashCode() = entry.hashCode() xor name.hashCode() xor Arrays.hashCode(content)
-
-	override fun equals(other: Any?) =
-			(other as Content?)
-					?.let { other?.entry == entry && other?.name == name && Arrays.equals(other?.content, content) }
-					?: false
-
-	override fun toString() = "${javaClass.simpleName}(name=$name, content=ByteArray(${content.size}))"
-}
+data class Content(val entry: Entry, val name: String, val file: File)
 
 fun Entry.downloadLinks() =
 		url.httpGet().toDocument()
