@@ -9,13 +9,16 @@ buildscript {
 }
 
 repositories {
-     mavenCentral()
+    mavenCentral()
+    jcenter()
 }
 
 apply plugin: 'kotlin'
 
 dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+    compile group: 'com.github.kittinunf.fuel', name: 'fuel', version: '1.11.0'
+    compile group: 'org.jsoup', name: 'jsoup', version: '1.10.3'
 
     testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test'
     testCompile group: 'com.willowtreeapps.assertk', name: 'assertk', version: '0.9'
