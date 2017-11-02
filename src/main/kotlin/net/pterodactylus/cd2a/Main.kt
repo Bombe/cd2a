@@ -157,9 +157,6 @@ fun Entry.downloadLinks() =
 		url.httpGet().toDocument()
 				?.let { document ->
 					listOf(
-							document.select("li[class='download_link sceneorg'] div[class=primary] a")
-									?.attr("href")
-									?.replace("/view/", "/get/"),
 							*document.select("li[class='download_link sceneorg'] div[class=secondary] a")
 									.map { it.attr("href") }
 									.filter { it.startsWith("http") }
