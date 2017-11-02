@@ -135,9 +135,10 @@ fun Entry.download(links: List<String>) =
 
 fun String.decode() = URLDecoder.decode(this, "UTF-8")!!
 
-fun <R> tryOrNull(block: () -> R): R? = try {
+fun <R> tryOrNull(silent: Boolean = true, block: () -> R): R? = try {
 	block()
-} catch (_: Throwable) {
+} catch (t: Throwable) {
+	if (!silent) t.printStackTrace()
 	null
 }
 
