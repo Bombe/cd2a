@@ -247,7 +247,6 @@ class Indent(private val indent: Int = 0) {
 	private operator fun String.times(count: Int) = 0.until(count).joinToString("") { this }
 	fun println(text: String) = System.out.println("  " * indent + text)
 	fun advance(block: Indent.() -> Unit) = block(Indent(indent + 1))
-	fun apply(block: Indent.() -> Unit) = block(this)
 }
 
 fun indent(block: Indent.() -> Unit) = Indent(-1).advance(block)
