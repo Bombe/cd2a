@@ -152,20 +152,13 @@ fun String.hasModulePrefix() = toLowerCase()
 fun Entry.download(links: List<String>) =
 		links.fold(null as Content?) { previous, link ->
 			previous ?: tryOrNull {
-				when {
-					"youtube.com" in link ->
-						tempFile("$name-", ".url")
-								.apply { writeBytes(link.toByteArray()) }
-								.let { Content(this, name + ".url", it) }
-					else ->
-						tempFile("$name-", "-${link.split("/").last()}")
-								.let { tempFile ->
-									Fuel.download(link).destination { _, _ -> tempFile }
-											.response()
-											.takeIf { it.third.component2() == null }
-											?.let { Content(this, link.split("/").last().decode(), tempFile) }
-								}
-				}
+				tempFile("$name-", "-${link.split("/").last()}")
+						.let { tempFile ->
+							Fuel.download(link).destination { _, _ -> tempFile }
+									.response()
+									.takeIf { it.third.component2() == null }
+									?.let { Content(this, link.split("/").last().decode(), tempFile) }
+						}
 			}
 		}
 
