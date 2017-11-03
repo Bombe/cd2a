@@ -133,6 +133,8 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.toLowerCase().endsWith(".lha") -> unpackLharc()
 			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
 			name.toLowerCase().endsWith(".rar") -> unpackRar()
+			name.toLowerCase().endsWith(".tar") -> unpackTar()
+			listOf(".tar.gz", ".tgz").any { name.endsWith(it) } -> unpackTarGz()
 			name.isMusic() -> listOf(this)
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
@@ -140,6 +142,13 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.isVideo() -> listOf(this)
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
+
+val tarLocation = "/usr/bin/tar"
+fun Content.unpackTar() =
+		unpack("tar") { listOf(tarLocation, "-x", "-f", file.toString()) }
+
+fun Content.unpackTarGz() =
+		unpack("targz") { listOf(tarLocation, "-x", "-z", "-f", file.toString()) }
 
 val lharcLocation = "/usr/local/bin/lha"
 fun Content.unpackLharc() =
