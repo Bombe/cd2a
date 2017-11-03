@@ -122,6 +122,7 @@ fun Content.getRelevantFiles(): List<Content> =
 			}
 			name.toLowerCase().endsWith(".lha") -> unpackLharc()
 			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
+			name.toLowerCase().endsWith(".rar") -> unpackRar()
 			name.isMusic() -> listOf(this)
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
@@ -137,6 +138,10 @@ fun Content.unpackLharc() =
 val sevenZipLocation = "/usr/local/bin/7z"
 fun Content.unpack7Zip() =
 		unpack("7zip") { it.command(sevenZipLocation, "x", file.absolutePath) }
+
+val unrarLocation = "/usr/local/bin/unrar"
+fun Content.unpackRar() =
+		unpack("rar") { it.command(unrarLocation, "x", file.absolutePath) }
 
 fun Content.unpack(algorithm: String, processBuilder: (ProcessBuilder) -> ProcessBuilder) =
 		tempFile("$algorithm-$name-", ".out")
