@@ -120,6 +120,7 @@ fun Content.getRelevantFiles(): List<Content> =
 						.also { this@getRelevantFiles.remove() }
 						.flatMap { it.getRelevantFiles() }
 			}
+			name.toLowerCase().endsWith(".lha") -> unpackLharc()
 			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
 			name.isMusic() -> listOf(this)
 			name.isModule() -> listOf(this)
@@ -129,10 +130,16 @@ fun Content.getRelevantFiles(): List<Content> =
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
 
-val sevenZipLocation = "/usr/local/bin/7z"
+val lharcLocation = "/usr/local/bin/lha"
+fun Content.unpackLharc() =
+		unpack("lha") { it.command(lharcLocation, "x", file.absolutePath) }
 
+val sevenZipLocation = "/usr/local/bin/7z"
 fun Content.unpack7Zip() =
-		tempFile("7zip-$name-", ".out")
+		unpack("7zip") { it.command(sevenZipLocation, "x", file.absolutePath) }
+
+fun Content.unpack(algorithm: String, processBuilder: (ProcessBuilder) -> ProcessBuilder) =
+		tempFile("$algorithm-$name-", ".out")
 				.apply {
 					delete()
 					mkdir()
@@ -141,7 +148,7 @@ fun Content.unpack7Zip() =
 					tempFile("stdout-$name-", ".txt").use { stdout ->
 						ProcessBuilder()
 								.directory(directory)
-								.command(sevenZipLocation, "x", file.absolutePath)
+								.let { processBuilder(it) }
 								.redirectErrorStream(true)
 								.redirectOutput(stdout)
 								.start().waitFor()
@@ -152,7 +159,7 @@ fun Content.unpack7Zip() =
 						Files.move(path, destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
 						Content(entry, path.fileName.toString().replace("/", "-"), destination)
 					}
-							.also { this@unpack7Zip.remove() }
+							.also { this@unpack.remove() }
 							.flatMap(Content::getRelevantFiles)
 				}
 
