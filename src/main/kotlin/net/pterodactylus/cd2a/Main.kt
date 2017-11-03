@@ -57,6 +57,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 			val relevantFiles = content?.getRelevantFiles()?.toList() ?: emptyList()
 			println("Relevant Files: ${relevantFiles.size}")
 			if (relevantFiles.isEmpty()) {
+				println("Didn't get anything from ${content?.name}.")
 				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@advance
 				println("Downloading from YouTube...")
 				entry.downloadYoutubeLink(youtubeLink)
