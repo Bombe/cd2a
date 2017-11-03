@@ -9,6 +9,8 @@ import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.util.stream.Collectors
+import java.util.stream.Stream
 import java.util.zip.ZipInputStream
 
 val baseDirectory = "/Users/bombe/Temp/dp"
@@ -118,6 +120,7 @@ fun Content.getRelevantFiles(): List<Content> =
 						.also { this@getRelevantFiles.remove() }
 						.flatMap { it.getRelevantFiles() }
 			}
+			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
 			name.isMusic() -> listOf(this)
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
@@ -125,6 +128,41 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.isVideo() -> listOf(this)
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
+
+val sevenZipLocation = "/usr/local/bin/7z"
+
+fun Content.unpack7Zip() =
+		tempFile("7zip-$name-", ".out")
+				.apply {
+					delete()
+					mkdir()
+				}
+				.use { directory ->
+					tempFile("stdout-$name-", ".txt").use { stdout ->
+						ProcessBuilder()
+								.directory(directory)
+								.command(sevenZipLocation, "x", file.absolutePath)
+								.redirectErrorStream(true)
+								.redirectOutput(stdout)
+								.start().waitFor()
+					}
+					Files.walk(directory.toPath()).toList().mapNotNull { path ->
+						if (path.toFile().isDirectory) return@mapNotNull null
+						val destination = tempFile("file-", "-${path.fileName.toString().split("/").last()}")
+						Files.move(path, destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
+						Content(entry, path.fileName.toString().replace("/", "-"), destination)
+					}
+							.also { this@unpack7Zip.remove() }
+							.flatMap(Content::getRelevantFiles)
+				}
+
+fun <T> Stream<T>.toList(): List<T> = collect(Collectors.toList())
+
+fun <R> File.use(block: (File) -> R): R =
+		block(this)
+				.also { Files.walk(this.toPath()).toList().forEach { it.toFile().delete() } }
+				.also { delete() }
+				.also { deleteOnExit() }
 
 fun Content.remove() {
 	file.delete()
