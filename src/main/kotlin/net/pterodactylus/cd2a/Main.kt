@@ -60,6 +60,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 		val downloadLinks = entry.downloadLinks()
 		indent.advance {
 			println("Download Links: ${downloadLinks.size}")
+			if (downloadLinks.isEmpty()) return@advance
 			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
 			val relevantFiles = content?.getRelevantFiles()?.toList() ?: emptyList()
 			println("Relevant Files: ${relevantFiles.size}")
