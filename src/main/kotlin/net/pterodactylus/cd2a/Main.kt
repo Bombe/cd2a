@@ -263,7 +263,7 @@ fun Demoparty.loadCompos() =
 																it.select("div[class=result__title] a").first().absUrl("href"),
 																it.select("[class=result__ranking]").text().toIntOrNull() ?: 0,
 																it.select("div[class=result__title] a").text().cleanTitle(),
-																it.select("div[class=result__author] a").eachText().joinToString(" & ")
+																it.select("div[class=result__author]").text().cleanAuthor()
 														)
 													})
 										}
@@ -274,6 +274,7 @@ fun Demoparty.loadCompos() =
 
 fun String.cleanCompo() = replace(Regex("( / |/)"), " & ")
 fun String.cleanTitle() = replace("/", "_")
+fun String.cleanAuthor() = cleanTitle()
 
 fun getDemoparties(): Collection<Demoparty> =
 		"https://demozoo.org/parties/by_date/"
