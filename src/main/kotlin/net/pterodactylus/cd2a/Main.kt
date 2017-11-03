@@ -18,28 +18,35 @@ val baseDirectory = "/Users/bombe/Temp/dp"
 fun main(args: Array<String>) {
 	getDemoparties()
 			.filter { it.name == "Revision 2017" && it.year == 2017 }
-			.forEach { processDemoparty(it) }
+			.forEachProgress { index, total, party ->
+				println("Processing ${party.name} ($index/$total)...")
+				processDemoparty(party)
+			}
 }
 
 fun processDemoparty(party: Demoparty) {
 	indent {
-		println("Processing ${party.name}...")
 		party
 				.let(Demoparty::loadCompos)
 				.compos
-				.forEach { advance { processCompo(it, this) } }
+				.forEachProgress { index, total, compo ->
+					advance {
+						println("Processing ${compo.name} ($index/$total)...")
+						processCompo(compo, this)
+					}
+				}
 	}
 }
 
+fun <T> Collection<T>.forEachProgress(block: (Int, Int, T) -> Unit) =
+		forEachIndexed { index, element -> block(index, size, element) }
+
 fun processCompo(compo: Compo, indent: Indent = Indent()) {
-	with(indent) {
-		println("Processing ${compo.name}...")
-		indent.advance {
-			println("Entries: ${compo.entries.size}")
-			val entries = compo.entries.filterNot { "/graphics/" in it.url }
-			println("Eligible Entries: ${entries.size}")
-			entries.forEach { processEntry(it, this) }
-		}
+	indent.advance {
+		println("Entries: ${compo.entries.size}")
+		val entries = compo.entries.filterNot { "/graphics/" in it.url }
+		println("Eligible Entries: ${entries.size}")
+		entries.forEach { processEntry(it, this) }
 	}
 }
 
