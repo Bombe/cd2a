@@ -133,17 +133,17 @@ fun Content.getRelevantFiles(): List<Content> =
 
 val lharcLocation = "/usr/local/bin/lha"
 fun Content.unpackLharc() =
-		unpack("lha") { it.command(lharcLocation, "x", file.absolutePath) }
+		unpack("lha") { listOf(lharcLocation, "x", file.absolutePath) }
 
 val sevenZipLocation = "/usr/local/bin/7z"
 fun Content.unpack7Zip() =
-		unpack("7zip") { it.command(sevenZipLocation, "x", file.absolutePath) }
+		unpack("7zip") { listOf(sevenZipLocation, "x", file.absolutePath) }
 
 val unrarLocation = "/usr/local/bin/unrar"
 fun Content.unpackRar() =
-		unpack("rar") { it.command(unrarLocation, "x", file.absolutePath) }
+		unpack("rar") { listOf(unrarLocation, "x", file.absolutePath) }
 
-fun Content.unpack(algorithm: String, processBuilder: (ProcessBuilder) -> ProcessBuilder) =
+fun Content.unpack(algorithm: String, processBuilder: () -> List<String>) =
 		tempFile("$algorithm-$name-", ".out")
 				.apply {
 					delete()
@@ -153,7 +153,7 @@ fun Content.unpack(algorithm: String, processBuilder: (ProcessBuilder) -> Proces
 					tempFile("stdout-$name-", ".txt").use { stdout ->
 						ProcessBuilder()
 								.directory(directory)
-								.let { processBuilder(it) }
+								.command(*processBuilder().toTypedArray())
 								.redirectErrorStream(true)
 								.redirectOutput(stdout)
 								.start().waitFor()
