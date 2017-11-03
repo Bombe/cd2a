@@ -44,6 +44,10 @@ fun processCompo(compo: Compo, indent: Indent = Indent()) {
 fun processEntry(entry: Entry, indent: Indent = Indent()) {
 	with(indent) {
 		println("Entry: ${entry.artist} - ${entry.name} (${entry.url})")
+		if (entry.directory().toFile().list { dir, name ->  name.startsWith(entry.base().toString())} != null) {
+			indent.advance { println("Skipping.") }
+			return
+		}
 		val downloadLinks = entry.downloadLinks()
 		indent.advance {
 			println("Download Links: ${downloadLinks.size}")
