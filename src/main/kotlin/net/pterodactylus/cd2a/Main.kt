@@ -196,11 +196,11 @@ fun String.isMusic() = toLowerCase()
 fun String.isModule() = hasModuleSuffix() || hasModulePrefix()
 
 fun String.hasModuleSuffix() = toLowerCase()
-		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx")
+		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx")
 
 fun String.hasModulePrefix() = toLowerCase()
 		.split("/").last()
-		.split(".").first() in listOf("xm", "mod")
+		.split(".").first() in listOf("xm", "mod", "thx")
 
 fun Entry.download(links: List<String>) =
 		links.fold(null as Content?) { previous, link ->
