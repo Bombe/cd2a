@@ -55,15 +55,27 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 			val relevantFiles = listOf(content).filterNotNull().flatMap { it.getRelevantFiles().toList() }
 			println("Relevant Files: ${relevantFiles.size}")
 			if (relevantFiles.isEmpty()) {
-				val youtubeLink = entry.download(downloadLinks.filter { it.isYoutubeLink() }) ?: return@advance
-				println("Storing Youtube Link...")
-				youtubeLink.store(entry, this)
+				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@advance
+				println("Downloading from YouTube...")
+				entry.downloadYoutubeLink(youtubeLink)
 			} else {
 				println("Storing Files...")
 				relevantFiles.forEach { it.store(entry, this) }
 			}
 		}
 	}
+}
+
+const val youtubeDlLocation = "/usr/local/bin/youtube-dl"
+fun Entry.downloadYoutubeLink(link: String) {
+	val stdout = tempFile("stdout-$link-", ".url").apply { deleteOnExit() }
+	ProcessBuilder()
+			.directory(directory().toFile())
+			.command(youtubeDlLocation, "-x", "-o", base().toString() + ".out", link)
+			.redirectErrorStream(true)
+			.redirectOutput(stdout)
+			.start().waitFor()
+	stdout.delete()
 }
 
 fun String.isYoutubeLink() = startsWith("http://www.youtube.com/") || startsWith("https://www.youtube.com/")
