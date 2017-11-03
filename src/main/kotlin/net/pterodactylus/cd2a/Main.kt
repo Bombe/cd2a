@@ -183,7 +183,7 @@ fun Content.remove() {
 }
 
 fun String.isVideo() = toLowerCase()
-		.split(".").last() in listOf("mp4", "mpg", "mkv", "avi")
+		.split(".").last() in listOf("mp4", "mpg", "mkv", "avi", "mov")
 
 fun String.isUrl() = toLowerCase().endsWith(".url")
 
