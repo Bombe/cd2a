@@ -99,6 +99,7 @@ fun Content.store(entry: Entry, indent: Indent) =
 					.let {
 						Files.move(file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
 					}
+					.let { Unit }
 		}
 
 fun Content.getRelevantFiles(): List<Content> =
