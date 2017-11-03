@@ -51,18 +51,16 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 		val downloadLinks = entry.downloadLinks()
 		indent.advance {
 			println("Download Links: ${downloadLinks.size}")
-			val youtubeLink = entry.download(downloadLinks.filter { it.isYoutubeLink() })
 			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
 			val relevantFiles = listOf(content).filterNotNull().flatMap { it.getRelevantFiles().toList() }
 			println("Relevant Files: ${relevantFiles.size}")
 			if (relevantFiles.isEmpty()) {
-				if (youtubeLink == null) return@advance
+				val youtubeLink = entry.download(downloadLinks.filter { it.isYoutubeLink() }) ?: return@advance
 				println("Storing Youtube Link...")
 				youtubeLink.store(entry, this)
 			} else {
 				println("Storing Files...")
 				relevantFiles.forEach { it.store(entry, this) }
-				youtubeLink?.remove()
 			}
 		}
 	}
