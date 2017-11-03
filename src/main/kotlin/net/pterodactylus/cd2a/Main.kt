@@ -44,7 +44,7 @@ fun processCompo(compo: Compo, indent: Indent = Indent()) {
 fun processEntry(entry: Entry, indent: Indent = Indent()) {
 	with(indent) {
 		println("Entry: ${entry.artist} - ${entry.name} (${entry.url})")
-		if (entry.directory().toFile().list { dir, name ->  name.startsWith(entry.base().toString())} != null) {
+		if (entry.directory().toFile().list { _, name -> name.startsWith(entry.base().toString()) }?.isEmpty() == false) {
 			indent.advance { println("Skipping.") }
 			return
 		}
