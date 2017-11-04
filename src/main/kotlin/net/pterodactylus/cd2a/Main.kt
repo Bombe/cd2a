@@ -317,7 +317,7 @@ fun Demoparty.loadCompos() =
 
 fun String.cleanCompo() = replace(Regex("( / |/)"), " & ")
 fun String.cleanTitle() = replace("/", "_")
-fun String.cleanAuthor() = cleanTitle()
+fun String.cleanAuthor() = replace("/", "!")
 
 fun getDemoparties(): Collection<Demoparty> =
 		"https://demozoo.org/parties/by_date/"
