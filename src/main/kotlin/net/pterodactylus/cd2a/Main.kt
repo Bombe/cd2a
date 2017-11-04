@@ -8,6 +8,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLDecoder
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.stream.Collectors
@@ -200,7 +201,7 @@ fun <T> Stream<T>.toList(): List<T> = collect(Collectors.toList())
 
 fun <R> File.use(block: (File) -> R): R =
 		block(this)
-				.also { Files.walk(this.toPath()).toList().forEach { it.toFile().delete() } }
+				.also { Files.walk(this.toPath()).toList().map(Path::toFile).sortedByDescending { toString() }.forEach { it.delete() } }
 				.also { delete() }
 				.also { deleteOnExit() }
 
