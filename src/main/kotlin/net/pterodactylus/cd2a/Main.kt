@@ -13,7 +13,6 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.stream.Collectors
 import java.util.stream.Stream
-import java.util.zip.ZipInputStream
 
 val baseDirectory = "/Users/bombe/Temp/dp"
 
@@ -118,20 +117,7 @@ fun Content.store(entry: Entry, indent: Indent) =
 
 fun Content.getRelevantFiles(): List<Content> =
 		when {
-			name.toLowerCase().endsWith(".zip") -> ZipInputStream(file.inputStream(), Charsets.ISO_8859_1).use { zipInputStream ->
-				generateSequence {
-					tryOrNull(true) {
-						zipInputStream.nextEntry?.let { zipEntry ->
-							tempFile("$name-", "-${zipEntry.name.split("/").last()}")
-									.apply { outputStream().use { zipInputStream.copyTo(it) } }
-									.let { Content(entry, zipEntry.name.replace("/", "-"), it) }
-						}
-					}
-				}
-						.toList()
-						.also { this@getRelevantFiles.remove() }
-						.flatMap { it.getRelevantFiles() }
-			}
+			name.toLowerCase().endsWith(".zip") -> unpackZip()
 			name.toLowerCase().endsWith(".lha") -> unpackLharc()
 			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
 			name.toLowerCase().endsWith(".rar") -> unpackRar()
@@ -152,6 +138,10 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.isVideo() -> listOf(this)
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
+
+val unzipLocation = "/usr/bin/unzip"
+fun Content.unpackZip() =
+		unpack("zip") { listOf(unzipLocation, file.toString()) }
 
 val tarLocation = "/usr/bin/tar"
 fun Content.unpackTar() =
