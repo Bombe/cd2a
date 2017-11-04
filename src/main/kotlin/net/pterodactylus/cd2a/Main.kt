@@ -201,7 +201,7 @@ fun <T> Stream<T>.toList(): List<T> = collect(Collectors.toList())
 
 fun <R> File.use(block: (File) -> R): R =
 		block(this)
-				.also { Files.walk(this.toPath()).toList().map(Path::toFile).sortedByDescending { toString() }.forEach { it.delete() } }
+				.also { Files.walk(this.toPath()).map(Path::toFile).sorted(reverseOrder()).forEach { it.delete() } }
 				.also { delete() }
 				.also { deleteOnExit() }
 
