@@ -118,7 +118,7 @@ fun Content.store(entry: Entry, indent: Indent) =
 
 fun Content.getRelevantFiles(): List<Content> =
 		when {
-			name.toLowerCase().endsWith(".zip") -> ZipInputStream(file.inputStream()).use { zipInputStream ->
+			name.toLowerCase().endsWith(".zip") -> ZipInputStream(file.inputStream(), Charsets.ISO_8859_1).use { zipInputStream ->
 				generateSequence {
 					tryOrNull(true) {
 						zipInputStream.nextEntry?.let { zipEntry ->
