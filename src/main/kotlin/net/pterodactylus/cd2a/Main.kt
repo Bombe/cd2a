@@ -179,6 +179,7 @@ fun Content.unpack(algorithm: String, processBuilder: () -> List<String>) =
 					}
 					Files.walk(directory.toPath()).toList().mapNotNull { path ->
 						if (path.toFile().isDirectory) return@mapNotNull null
+						if (directory.toPath().relativize(path).getName(0).toString() == "__MACOSX") return@mapNotNull null
 						val destination = tempFile("file-", "-${path.fileName.toString().split("/").last()}")
 						Files.move(path, destination.toPath(), StandardCopyOption.REPLACE_EXISTING)
 						Content(entry, path.fileName.toString().replace("/", "-"), destination)
