@@ -1,10 +1,11 @@
 package net.pterodactylus.cd2a
 
-import com.github.kittinunf.fuel.Fuel
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
 import org.jsoup.Jsoup
 import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
 import java.net.URLDecoder
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -223,14 +224,28 @@ fun Entry.download(links: List<String>) =
 		links.fold(null as Content?) { previous, link ->
 			previous ?: tryOrNull {
 				tempFile("$name-", "-${link.split("/").last()}")
-						.let { tempFile ->
-							Fuel.download(link).destination { _, _ -> tempFile }
-									.response()
-									.takeIf { it.third.component2() == null }
-									?.let { Content(this, link.split("/").last().decode(), tempFile) }
-						}
+						.let { link.download(it) ?: it.delete().let { null } }
+						?.let { Content(this, link.split("/").last().decode(), it) }
 			}
 		}
+
+fun String.download(destination: File): File? {
+	var url = this
+	while (true) {
+		val connection = URL(url).openConnection()
+		when {
+			connection is HttpURLConnection && connection.responseCode >= 400 -> return null
+			connection is HttpURLConnection && connection.responseCode >= 300 -> url = connection.getHeaderField("Location")
+			else -> tryOrNull {
+				destination.outputStream().use { outputStream ->
+					connection.getInputStream().use { inputStream ->
+						inputStream.copyTo(outputStream)
+					}
+				}.let { destination }
+			}
+		}
+	}
+}
 
 fun tempFile(prefix: String = "", suffix: String = "", directory: String = baseDirectory) =
 		File.createTempFile(prefix, suffix, File(directory))!!
