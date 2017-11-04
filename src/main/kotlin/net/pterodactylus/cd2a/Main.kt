@@ -245,12 +245,14 @@ fun String.download(destination: File): File? {
 		when {
 			connection is HttpURLConnection && connection.responseCode >= 400 -> return null
 			connection is HttpURLConnection && connection.responseCode >= 300 -> url = connection.getHeaderField("Location")
-			else -> tryOrNull {
-				destination.outputStream().use { outputStream ->
-					connection.getInputStream().use { inputStream ->
-						inputStream.copyTo(outputStream)
+			else -> return tryOrNull {
+				destination.apply {
+					outputStream().use { outputStream ->
+						connection.getInputStream().use { inputStream ->
+							inputStream.copyTo(outputStream)
+						}
 					}
-				}.let { destination }
+				}
 			}
 		}
 	}
