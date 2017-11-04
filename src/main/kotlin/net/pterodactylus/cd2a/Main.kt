@@ -267,7 +267,9 @@ fun Entry.downloadLinks() =
 					listOf(
 							*document.select("li[class='download_link sceneorg'] div[class=secondary] a")
 									.map { it.attr("href") }
-									.filter { it.startsWith("http") }
+									.toTypedArray(),
+							*document.select("li[class='download_link website'] div[class=primary] a")
+									.map { it.attr("href") }
 									.toTypedArray(),
 							document.select("a[class=youtube]").firstOrNull()?.attr("href")
 					).filterNotNull()
