@@ -81,7 +81,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 
 const val youtubeDlLocation = "/usr/local/bin/youtube-dl"
 fun Entry.downloadYoutubeLink(link: String) {
-	val stdout = tempFile("stdout-$link-", ".url").apply { deleteOnExit() }
+	val stdout = tempFile("stdout-$link-", ".stdout").apply { deleteOnExit() }
 	directory().toFile().mkdirs()
 	ProcessBuilder()
 			.directory(directory().toFile())
