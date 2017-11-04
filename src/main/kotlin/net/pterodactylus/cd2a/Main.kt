@@ -127,9 +127,28 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
 			name.isUrl() -> listOf(this)
-			name.isVideo() -> listOf(this)
+			name.isVideo() -> extractAudioTracks()
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
+
+private val ffmpegLocation = "/usr/local/bin/ffmpeg"
+private fun Content.extractAudioTracks(): List<Content> {
+	val mediaFile = identify(file) ?: return listOf(this).also { println("*** could not identify $file.") }
+	return when {
+		mediaFile.audioTracks.isEmpty() -> {
+			println("*** no audio tracks in $file: ${mediaFile.audioTracks.size}")
+			emptyList()
+		}
+		mediaFile.audioTracks.size > 1 -> {
+			println("*** invalid # of audio tracks in $file: ${mediaFile.audioTracks.size}")
+			emptyList()
+		}
+		else -> tempFile("audio-$name-", ".${mediaFile.audioTracks[0].type.suffix}").let { tempFile ->
+			runProcess(listOf(ffmpegLocation, "-y", "-i", file.toString(), "-acodec", "copy", "-vn", tempFile.toString()))
+			listOf(Content(entry, "$name.${mediaFile.audioTracks.first().type.suffix}", tempFile))
+		}
+	}.also { this@extractAudioTracks.remove() }
+}
 
 val unzipLocation = "/usr/bin/unzip"
 fun Content.unpackZip() =
