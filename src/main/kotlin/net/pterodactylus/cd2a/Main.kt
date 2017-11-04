@@ -214,7 +214,7 @@ fun String.isMusic() = toLowerCase()
 fun String.isModule() = hasModuleSuffix() || hasModulePrefix()
 
 fun String.hasModuleSuffix() = toLowerCase()
-		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx")
+		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx", "pt3")
 
 fun String.hasModulePrefix() = toLowerCase()
 		.split("/").last()
