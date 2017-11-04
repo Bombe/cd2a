@@ -17,7 +17,8 @@ val baseDirectory = "/Users/bombe/Temp/dp"
 
 fun main(args: Array<String>) {
 	getDemoparties()
-			.filter { it.name == "Revision 2017" && it.year == 2017 }
+//			.filter { it.name == "Revision 2017" }
+//			.filter { it.year == 2017 }
 			.forEachProgress { index, total, party ->
 				println("Processing ${party.name} ($index/$total)...")
 				processDemoparty(party)
