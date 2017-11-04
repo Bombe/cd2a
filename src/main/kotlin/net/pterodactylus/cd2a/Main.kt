@@ -77,7 +77,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 	}
 }
 
-const val youtubeDlLocation = "/usr/local/bin/youtube-dl"
+private val youtubeDlLocation = "/usr/local/bin/youtube-dl"
 fun Entry.downloadYoutubeLink(link: String) {
 	val stdout = tempFile("stdout-$link-", ".stdout").apply { deleteOnExit() }
 	directory().toFile().mkdirs()
