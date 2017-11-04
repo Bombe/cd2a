@@ -29,3 +29,4 @@ Steps 6–10 are done recursively, i.e. if an MP3 file is hidden in a .zip insid
 4. It does not memorize entries for which it could not extract any data; if there is not yet anything on the disc for that entry, the entry will be downloaded again even if repeating the extraction process will not produce any new results.
 5. It does not offer any user interface; if you do not want to download _every entry from every demoparty there ever was_ you have to modify the code.
 6. You have no possibility to change the pattern of the generated files and directories—unless you modify the code.
+7. It expects a lot of binaries in hardcoded locations. No way to change that—unless you modify the code.
