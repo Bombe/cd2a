@@ -79,15 +79,8 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 
 private val youtubeDlLocation = "/usr/local/bin/youtube-dl"
 fun Entry.downloadYoutubeLink(link: String) {
-	val stdout = tempFile("stdout-$link-", ".stdout").apply { deleteOnExit() }
 	directory().toFile().mkdirs()
-	ProcessBuilder()
-			.directory(directory().toFile())
-			.command(youtubeDlLocation, "-x", "-o", base().toString() + ".out", link)
-			.redirectErrorStream(true)
-			.redirectOutput(stdout)
-			.start().waitFor()
-	stdout.delete()
+	runProcess(listOf(youtubeDlLocation, "-x", "-o", base().toString() + ".out", link), directory().toFile())
 }
 
 fun String.isYoutubeLink() = startsWith("http://www.youtube.com/") || startsWith("https://www.youtube.com/")
@@ -161,21 +154,14 @@ val unrarLocation = "/usr/local/bin/unrar"
 fun Content.unpackRar() =
 		unpack("rar") { listOf(unrarLocation, "x", file.absolutePath) }
 
-fun Content.unpack(algorithm: String, processBuilder: () -> List<String>) =
+fun Content.unpack(algorithm: String, command: () -> List<String>) =
 		tempFile("$algorithm-$name-", ".out")
 				.apply {
 					delete()
 					mkdir()
 				}
 				.use { directory ->
-					tempFile("stdout-$name-", ".txt").use { stdout ->
-						ProcessBuilder()
-								.directory(directory)
-								.command(*processBuilder().toTypedArray())
-								.redirectErrorStream(true)
-								.redirectOutput(stdout)
-								.start().waitFor()
-					}
+					runProcess(command(), directory)
 					Files.walk(directory.toPath()).toList().mapNotNull { path ->
 						if (path.toFile().isDirectory) return@mapNotNull null
 						if (directory.toPath().relativize(path).getName(0).toString() == "__MACOSX") return@mapNotNull null
