@@ -293,7 +293,7 @@ fun Demoparty.loadCompos() =
 														Entry(
 																compo,
 																it.select("div[class=result__title] a").first().absUrl("href"),
-																it.select("[class=result__ranking]").text().toIntOrNull() ?: 0,
+																it.select("[class=result__ranking]").text().replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0,
 																it.select("div[class=result__title] a").text().cleanTitle(),
 																it.select("div[class=result__author]").text().cleanAuthor()
 														)
