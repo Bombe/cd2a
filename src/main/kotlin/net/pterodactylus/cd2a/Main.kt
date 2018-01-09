@@ -1,5 +1,7 @@
 package net.pterodactylus.cd2a
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
 import org.jsoup.Jsoup
@@ -308,22 +310,29 @@ fun String.cleanCompo() = replace(Regex("( / |/)"), " & ")
 fun String.cleanTitle() = replace("/", "_")
 fun String.cleanAuthor() = replace("/", "!")
 
-fun getDemoparties(): Collection<Demoparty> =
-		"https://demozoo.org/parties/by_date/"
-				.httpGet()
-				.toDocument()
-				?.select("h3, ul li a")
-				?.fold(0 to emptyList<Demoparty>()) { (year, parties), element ->
-					if (element.tagName() == "h3") {
-						element.text().toInt() to parties
-					} else {
-						year to (parties + Demoparty(element.absUrl("href"), element.text().titleCase(), year))
-					}
-				}?.second
-				?: emptyList()
+private val objectMapper by lazy { ObjectMapper() }
 
-fun String.titleCase() = split(" ")
-		.joinToString(" ") { it.first().toUpperCase() + it.drop(1).toLowerCase() }
+fun getDemoparties(): Collection<Demoparty> =
+		generateSequence("https://demozoo.org/api/v1/parties/" as String? to emptyList<Demoparty>()) { (url, _) ->
+			url
+					?.httpGet()
+					?.header("Accept" to "application/json; charset=utf-8")
+					?.response()
+					?.takeIf { it.third.component2() == null }
+					?.third?.component1()
+					?.let { objectMapper.readTree(it) }
+					?.let { it["next"].text to it["results"] }
+					?.let { entries ->
+						entries.first to entries.second.map {
+							val partyUrl = it["demozoo_url"].asText()
+							val name = it["name"].asText()
+							val year = it["start_date"].asText().substring(0, 4).toInt()
+							Demoparty(partyUrl, name, year)
+						}
+					}
+		}.map { it.second }.reduce { l, r -> l + r }
+
+private val JsonNode.text get() = takeUnless { it.isNull }?.let(JsonNode::asText)
 
 fun Request.toDocument() =
 		responseString()

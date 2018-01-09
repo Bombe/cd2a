@@ -19,6 +19,7 @@ dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
     compile group: 'com.github.kittinunf.fuel', name: 'fuel', version: '1.11.0'
     compile group: 'org.jsoup', name: 'jsoup', version: '1.10.3'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
 
     testCompile group: 'org.jetbrains.kotlin', name: 'kotlin-test'
     testCompile group: 'com.willowtreeapps.assertk', name: 'assertk', version: '0.9'
