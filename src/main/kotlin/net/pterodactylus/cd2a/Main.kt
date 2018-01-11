@@ -2,9 +2,7 @@ package net.pterodactylus.cd2a
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.kittinunf.fuel.core.Request
 import com.github.kittinunf.fuel.httpGet
-import org.jsoup.Jsoup
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -30,7 +28,6 @@ fun main(args: Array<String>) {
 fun processDemoparty(party: Demoparty) {
 	indent {
 		party
-				.let(Demoparty::loadCompos)
 				.compos
 				.forEachProgress { index, total, compo ->
 					advance {
@@ -47,7 +44,7 @@ fun <T> Collection<T>.forEachProgress(block: (Int, Int, T) -> Unit) =
 fun processCompo(compo: Compo, indent: Indent = Indent()) {
 	indent.advance {
 		println("Entries: ${compo.entries.size}")
-		val entries = compo.entries.filterNot { "/graphics/" in it.url }
+		val entries = compo.entries.filterNot { it.type == "graphics" }
 		println("Eligible Entries: ${entries.size}")
 		entries.forEach { processEntry(it, this) }
 	}
@@ -55,7 +52,7 @@ fun processCompo(compo: Compo, indent: Indent = Indent()) {
 
 fun processEntry(entry: Entry, indent: Indent = Indent()) {
 	with(indent) {
-		println("Entry: ${entry.artist} - ${entry.name} (${entry.url})")
+		println("Entry: ${entry.artist} - ${entry.name} (${entry.id})")
 		if (entry.directory().toFile().list { _, name -> name.startsWith(entry.base().toString()) }?.isEmpty() == false) {
 			indent.advance { println("Skipping.") }
 			return
@@ -262,49 +259,71 @@ fun <R> tryOrNull(silent: Boolean = true, block: () -> R): R? = try {
 data class Content(val entry: Entry, val name: String, val file: File)
 
 fun Entry.downloadLinks() =
-		url.httpGet().toDocument()
-				?.let { document ->
-					listOf(
-							*document.select("li[class='download_link sceneorg'] div[class=secondary] a")
-									.map { it.attr("href") }
-									.toTypedArray(),
-							*document.select("li[class='download_link website'] div[class=primary] a")
-									.map { it.attr("href") }
-									.toTypedArray(),
-							document.select("a[class=youtube]").firstOrNull()?.attr("href")
-					).filterNotNull()
-				}
-				?: emptyList<String>()
+		"https://demozoo.org/api/v1/productions/$id/".
+				httpGet()
+				.header("Accept" to "application/json; charset=utf-8")
+				.response()
+				.takeIf { it.third.component2() == null }
+				?.third?.component1()
+				?.let { objectMapper.readTree(it) }
+				?.let {
+					it["download_links"]
+							.filter { it["link_class"].asText() == "SceneOrgFile" }
+							.map { it["url"].asText() }
+							.map { it.toSceneOrgDownloadUrl() } +
+							it["external_links"]
+									.filter { it["link_class"].asText() == "YoutubeVideo" }
+									.map { it["url"].asText()!! }
+				} ?: emptyList()
 
-fun Entry.base() = Paths.get("${compo.party.name} - ${compo.name} - ${index.track} - $artist - $name")!!
+private fun String.toSceneOrgDownloadUrl() =
+		"https://archive.scene.org/pub" + removePrefix("https://files.scene.org/view")
+
+fun Entry.base() = Paths.get("${party.name} - ${compo} - ${index.track} - $artist - $name")!!
 
 fun Entry.directory() = Paths.get(baseDirectory,
-		compo.party.year.toString(),
-		compo.party.name,
-		compo.name)!!
+		party.year.toString(),
+		party.name,
+		compo)!!
 
-fun Demoparty.loadCompos() =
-		url.httpGet().toDocument()
-				?.let {
-					it.select("section[class*=competition]")
-							.map { section ->
-								Compo(this@loadCompos, section.select("h4").text().cleanCompo())
-										.let { compo ->
-											compo.copy(entries = section.select("tr[class=result]")
-													.map {
-														Entry(
-																compo,
-																it.select("div[class=result__title] a").first().absUrl("href"),
-																it.select("[class=result__ranking]").text().replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0,
-																it.select("div[class=result__title] a").text().cleanTitle(),
-																it.select("div[class=result__author]").text().cleanAuthor()
-														)
-													})
-										}
+private val Demoparty.entries
+	get() =
+		"https://demozoo.org/api/v1/parties/$id/"
+				.httpGet()
+				.header("Accept" to "application/json; charset=utf-8")
+				.response()
+				.takeIf { it.third.component2() == null }
+				?.third?.component1()
+				?.let { objectMapper.readTree(it) }
+				?.let { it["competitions"] }
+				?.flatMap { compo ->
+					compo["results"]
+							.map { result ->
+								Entry(
+										this,
+										compo["name"].asText().cleanCompo(),
+										result["production"]["id"].asLong(),
+										result["ranking"].asText().replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0,
+										result["production"]["supertype"].asText(),
+										result["production"]["title"].asText().cleanTitle(),
+										result["production"].artist.cleanAuthor())
 							}
-				}
-				?.let { copy(compos = it) }
-				?: this
+				} ?: emptyList()
+
+private val Demoparty.compos
+	get() = entries
+			.groupBy(Entry::compo)
+			.map { Compo(it.key, it.value.sortedBy { it.index }) }
+
+private val JsonNode.artist
+	get() = get("author_nicks").joinToString(" and ") { it["name"].asText() } +
+			(get("author_affiliation_nicks")
+					.takeIf { it.size() > 0 }
+					?.joinToString(" ^ ", " ! ") { it["name"].asText() }
+					?: "")
+
+data class Compo(val name: String, val entries: List<Entry>)
+data class Entry(val party: Demoparty, val compo: String, val id: Long, val index: Int, val type: String, val name: String, val artist: String)
 
 fun String.cleanCompo() = replace(Regex("( / |/)"), " & ")
 fun String.cleanTitle() = replace("/", "_")
@@ -324,27 +343,20 @@ fun getDemoparties(): Collection<Demoparty> =
 					?.let { it["next"].text to it["results"] }
 					?.let { entries ->
 						entries.first to entries.second.map {
+							val id = it["id"].asText().toLong()
 							val partyUrl = it["demozoo_url"].asText()
 							val name = it["name"].asText()
 							val year = it["start_date"].asText().substring(0, 4).toInt()
-							Demoparty(partyUrl, name, year)
+							Demoparty(id, partyUrl, name, year)
 						}
 					}
 		}.map { it.second }.reduce { l, r -> l + r }
 
 private val JsonNode.text get() = takeUnless { it.isNull }?.let(JsonNode::asText)
 
-fun Request.toDocument() =
-		responseString()
-				.takeIf { it.third.component2() == null }
-				?.third?.component1()
-				?.let { Jsoup.parse(it, url.toString()) }
-
 val Int.track get() = "%02d".format(this)
 
-data class Entry(val compo: Compo, val url: String, val index: Int, val name: String, val artist: String)
-data class Compo(val party: Demoparty, val name: String, val entries: List<Entry> = emptyList())
-data class Demoparty(val url: String, val name: String, val year: Int, val compos: Collection<Compo> = emptyList())
+data class Demoparty(val id: Long, val url: String, val name: String, val year: Int)
 
 class Indent(private val indent: Int = 0) {
 	private operator fun String.times(count: Int) = 0.until(count).joinToString("") { this }
