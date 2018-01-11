@@ -14,7 +14,7 @@ If you decide to use this tool, please do so responsibly: at the moment it proba
 6. If it’s an archive (.zip, .7z, .lha, .rar, .tar, .tar.gz) it unpacks it.
 7. If it’s a video file, the audio track is extracted.
 8. If it’s a MOD file or other kind of audio file, keep it.
-9. If it’s a C64 executable (.d64, .prg) or a SID file (.sid, .psid), keep it.
+9. If it’s a SID file (.sid, .psid), keep it.
 10. Anything else is deleted.
 11. If nothing is left and there is a YouTube link, the audio track is downloaded from YouTube.
 12. Anything that is still there is stored in a directory named `<year>/<party>/<compo>/`.
