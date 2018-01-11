@@ -2,13 +2,13 @@
 
 This tool was created in order to support me with collecting all kinds of audio files from past demoparties. The manual process (using the excellent [demozoo.org](https://demozoo.org/) website) was tedious and error-prone.
 
-If you decide to use this tool, please do so responsibly: at the moment it probably creates a lot of load on both the Demozoo server and on the scene.org server which is listed as first secondary (for most entries that is probably nl-ftp).
+If you decide to use this tool, please do so responsibly: at the moment it probably creates a lot of load on both the Demozoo server and on the scene.org server in the Netherlands.
 
 ## What It Currently Does
 
-1. Scrapes [Demozoo’s page of parties](https://demozoo.org/parties/by_date/) to collect all demoparties and their year.
-2. Scrapes the page of all selected demoparties for the compos and entries.
-3. Scrapes the pages of all “music” and “production” entries for download and YouTube links.
+1. Uses [Demozoo’s Party List API](https://demozoo.org/api/v1/parties/) to collect all demoparties and their year.
+2. Uses Demozoo’s Party API to collect the compos and entries for all selected demoparties. (This selection is hard-coded.)
+3. Uses Demozoo’s Production API to get download and YouTube links for all “music” and “production” entries. (Actually, for everything but “graphics” entries.)
 4. For an entry, check if there is already something on the disk matching the destination name pattern. If there is, proceed to next entry.
 5. Downloads whatever has been linked.
 6. If it’s an archive (.zip, .7z, .lha, .rar, .tar, .tar.gz) it unpacks it.
@@ -23,7 +23,6 @@ Steps 6–10 are done recursively, i.e. if an MP3 file is hidden in a .zip insid
 
 ## What It Currently Does Not Do
 
-1. It does not use Demozoo’s REST API for finding parties, their compos, and their entries. This is because this API does not yet exist. [Issue #323](https://github.com/demozoo/demozoo/issues/323) has been created.
 2. It does not convert audio types at the moment. WAV files (and others) are left as the “final” product.
 3. It does not show progress in a very nice way.
 4. It does not memorize entries for which it could not extract any data; if there is not yet anything on the disc for that entry, the entry will be downloaded again even if repeating the extraction process will not produce any new results.
