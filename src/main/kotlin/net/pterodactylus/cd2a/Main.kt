@@ -71,7 +71,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 				entry.downloadYoutubeLink(youtubeLink)
 			} else {
 				println("Storing Files...")
-				relevantFiles.forEach { it.store(entry, this) }
+				relevantFiles.store(entry, this)
 			}
 		}
 	}
@@ -85,26 +85,34 @@ fun Entry.downloadYoutubeLink(link: String) {
 
 fun String.isYoutubeLink() = startsWith("http://www.youtube.com/") || startsWith("https://www.youtube.com/")
 
-fun Content.store(entry: Entry, indent: Indent) =
+private fun generateFilename(entry: Entry, suffix: String, nameWithoutSuffix: String? = null, number: Int? = null) =
+		listOfNotNull(
+				entry.base(),
+				nameWithoutSuffix?.let { " - $it" },
+				number?.let { " ($it)" },
+				".$suffix"
+		).joinToString("")
+
+fun List<Content>.store(entry: Entry, indent: Indent) =
 		with(indent) {
-			entry.directory()
-					.toFile()
-					.apply {
-						mkdirs()
-					}
-					.let {
-						generateSequence(2 to File(it, entry.base().toString() + "." + name.split(".").last())) { last ->
-							if (!last.second.exists()) {
-								null
-							} else {
-								(last.first + 1) to File(it, entry.base().toString() + " (${last.first})." + name.split(".").last())
-							}
-						}.last().second
-					}
-					.let {
-						Files.move(file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
-					}
-					.let { Unit }
+			forEach { content ->
+				fun generateName(number: Int? = null) =
+						content.name.split(".").let { nameParts ->
+							generateFilename(entry, nameParts.last(), this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString("") }, number)
+						}
+				entry.directory()
+						.toFile()
+						.apply { mkdirs() }
+						.let {
+							generateSequence(2 to File(it, generateName(null))) { (nextNumber, file) ->
+								((nextNumber + 1) to File(it, generateName(nextNumber)))
+										.takeIf { file.exists() }
+							}.last().second
+						}
+						.let {
+							Files.move(content.file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
+						}
+			}
 		}
 
 fun Content.getRelevantFiles(): List<Content> =
