@@ -204,7 +204,7 @@ fun String.isVideo() = toLowerCase()
 fun String.isUrl() = toLowerCase().endsWith(".url")
 
 fun String.isSid() = toLowerCase()
-		.split(".").last() in listOf("sid", "psid", "prg")
+		.split(".").last() in listOf("sid", "psid")
 
 fun String.isMusic() = toLowerCase()
 		.split(".").last() in listOf("mp3", "ogg", "flac", "opus", "aac", "m4a", "wav")
