@@ -189,6 +189,7 @@ fun Content.unpack(algorithm: String, command: () -> List<String>) =
 				}
 				.use { directory ->
 					runProcess(command(), directory)
+					runProcess(listOf("/bin/chmod", "-R", "u+w", "."), directory)
 					Files.walk(directory.toPath()).toList().mapNotNull { path ->
 						if (path.toFile().isDirectory) return@mapNotNull null
 						if (directory.toPath().relativize(path).getName(0).toString() == "__MACOSX") return@mapNotNull null
