@@ -13,7 +13,7 @@ import java.nio.file.StandardCopyOption
 import java.util.stream.Collectors
 import java.util.stream.Stream
 
-val baseDirectory = "/Users/bombe/Temp/dp"
+const val baseDirectory = "/Users/bombe/Temp/dp"
 
 fun main(args: Array<String>) {
 	getDemoparties()
@@ -160,26 +160,26 @@ private fun Content.extractAudioTracks(): List<Content> {
 	}.also { this@extractAudioTracks.remove() }
 }
 
-val unzipLocation = "/usr/bin/unzip"
+const val unzipLocation = "/usr/bin/unzip"
 fun Content.unpackZip() =
 		unpack("zip") { listOf(unzipLocation, file.toString()) }
 
-val tarLocation = "/usr/bin/tar"
+const val tarLocation = "/usr/bin/tar"
 fun Content.unpackTar() =
 		unpack("tar") { listOf(tarLocation, "-x", "-f", file.toString()) }
 
 fun Content.unpackTarGz() =
 		unpack("targz") { listOf(tarLocation, "-x", "-z", "-f", file.toString()) }
 
-val lharcLocation = "/usr/local/bin/lha"
+const val lharcLocation = "/usr/local/bin/lha"
 fun Content.unpackLharc() =
 		unpack("lha") { listOf(lharcLocation, "x", file.absolutePath) }
 
-val sevenZipLocation = "/usr/local/bin/7z"
+const val sevenZipLocation = "/usr/local/bin/7z"
 fun Content.unpack7Zip() =
 		unpack("7zip") { listOf(sevenZipLocation, "x", file.absolutePath) }
 
-val unrarLocation = "/usr/local/bin/unrar"
+const val unrarLocation = "/usr/local/bin/unrar"
 fun Content.unpackRar() =
 		unpack("rar") { listOf(unrarLocation, "x", file.absolutePath) }
 
