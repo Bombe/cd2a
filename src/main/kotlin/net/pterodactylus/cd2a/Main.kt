@@ -92,7 +92,11 @@ fun List<Content>.store(entry: Entry, indent: Indent) =
 			forEach { content ->
 				fun generateName(number: Int? = null) =
 						content.name.split(".").let { nameParts ->
-							generateFilename(entry, nameParts.last(), this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString("") }, number)
+							generateFilename(
+									entry,
+									nameParts.last(),
+									this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString("") },
+									number)
 						}
 				entry.directory()
 						.toFile()
