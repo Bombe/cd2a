@@ -356,7 +356,7 @@ fun getDemoparties(): Collection<Demoparty> =
 						entries.first to entries.second.map {
 							val id = it["id"].asText().toLong()
 							val partyUrl = it["demozoo_url"].asText()
-							val name = it["name"].asText()
+							val name = it["name"].asText().cleanCompo()
 							val year = it["start_date"].asText().substring(0, 4).toInt()
 							Demoparty(id, partyUrl, name, year)
 						}
