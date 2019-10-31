@@ -82,7 +82,7 @@ enum class AudioType(val suffix: String) {
 				(format == "MPEG Audio" && formatVersion == "Version 1" && formatProfile == "Layer 2")
 	},
 	MP3("mp3") {
-		private val allowedCodecIds = listOf("A_MPEG/L3", "55", "6B")
+		private val allowedCodecIds = listOf("A_MPEG/L3", "55", "6B", "mp4a-6B")
 		override fun matches(format: String?, formatVersion: String?, formatProfile: String?, codecId: String?) =
 				codecId in allowedCodecIds
 	},
