@@ -56,10 +56,10 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 			println("Download Links: ${downloadLinks.size}")
 			if (downloadLinks.isEmpty()) return@advance
 			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
-			val relevantFiles = content?.getRelevantFiles() ?: emptyList()
+			val relevantFiles = content.flatMap { it.getRelevantFiles() }
 			println("Relevant Files: ${relevantFiles.size}")
 			if (relevantFiles.isEmpty()) {
-				println("Didn't get anything from ${content?.name}.")
+				println("Didn't get anything from ${content.joinToString { it.name }}.")
 				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@advance
 				println("Downloading from YouTube...")
 				entry.downloadYoutubeLink(youtubeLink)
@@ -228,8 +228,8 @@ fun String.hasModulePrefix() = toLowerCase()
 		.split(".").first() in listOf("xm", "mod", "thx")
 
 fun Entry.download(links: List<String>) =
-		links.fold(null as Content?) { previous, link ->
-			previous ?: tryOrNull {
+		links.mapNotNull { link ->
+			tryOrNull {
 				tempFile("$name-", "-${link.split("/").last()}")
 						.let { link.download(it) ?: it.delete().let { null } }
 						?.let { Content(this, link.split("/").last().decode(), it) }
