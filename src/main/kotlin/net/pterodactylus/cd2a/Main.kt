@@ -162,7 +162,7 @@ private fun Content.extractAudioTracks(): List<Content> {
 
 const val unzipLocation = "/usr/bin/unzip"
 fun Content.unpackZip() =
-		unpack("zip") { listOf(unzipLocation, file.toString()) }
+		unpack("zip") { listOf(unzipLocation, "-o", file.toString()) }
 
 const val tarLocation = "/usr/bin/tar"
 fun Content.unpackTar() =
