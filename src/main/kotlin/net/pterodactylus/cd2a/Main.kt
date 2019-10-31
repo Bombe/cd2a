@@ -1,17 +1,11 @@
 package net.pterodactylus.cd2a
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.kittinunf.fuel.httpGet
-import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
-import java.net.URLDecoder
-import java.nio.file.Files
-import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
-import java.util.stream.Collectors
-import java.util.stream.Stream
+import com.fasterxml.jackson.databind.*
+import com.github.kittinunf.fuel.*
+import java.io.*
+import java.net.*
+import java.nio.file.*
+import java.util.stream.*
 
 const val baseDirectory = "/Users/bombe/Temp/dp"
 
