@@ -270,8 +270,8 @@ fun <R> tryOrNull(silent: Boolean = true, block: () -> R): R? = try {
 data class Content(val entry: Entry, val name: String, val file: File)
 
 fun Entry.downloadLinks() =
-		"https://demozoo.org/api/v1/productions/$id/".
-				httpGet()
+		"https://demozoo.org/api/v1/productions/$id/"
+				.httpGet()
 				.header("Accept" to "application/json; charset=utf-8")
 				.response()
 				.takeIf { it.third.component2() == null }
