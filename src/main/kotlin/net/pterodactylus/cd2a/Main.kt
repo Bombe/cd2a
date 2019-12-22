@@ -95,7 +95,7 @@ fun List<Content>.store(entry: Entry, indent: Indent) =
 							generateFilename(
 									entry,
 									nameParts.last(),
-									this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString("") },
+									this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString(".") },
 									number)
 						}
 				entry.directory()
