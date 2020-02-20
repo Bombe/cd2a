@@ -121,6 +121,7 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.toLowerCase().endsWith(".rar") -> unpackRar()
 			name.toLowerCase().endsWith(".tar") -> unpackTar()
 			listOf(".tar.gz", ".tgz").any { name.endsWith(it) } -> unpackTarGz()
+			name.isMusic() -> listOf(this)
 			name.toLowerCase().split("/").last().split(".").first() in listOf("xm", "mod", "thx") -> {
 				val paths = name.split("/")
 				val path = paths.dropLast(1)
@@ -129,7 +130,6 @@ fun Content.getRelevantFiles(): List<Content> =
 				}.joinToString(".")
 				Content(entry, (path + newFile).joinToString("/"), file).getRelevantFiles()
 			}
-			name.isMusic() -> listOf(this)
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
 			name.isUrl() -> listOf(this)
