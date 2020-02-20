@@ -115,7 +115,7 @@ fun List<Content>.store(entry: Entry, indent: Indent) =
 
 fun Content.getRelevantFiles(): List<Content> =
 		when {
-			name.toLowerCase().endsWith(".zip") -> unpackZip()
+			name.toLowerCase().endsWith(".zip") || name.toLowerCase().endsWith(".apk") -> unpackZip()
 			name.toLowerCase().endsWith(".lha") -> unpackLharc()
 			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
 			name.toLowerCase().endsWith(".rar") -> unpackRar()
