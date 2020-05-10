@@ -248,6 +248,7 @@ fun String.download(destination: File): File? {
 			connection is HttpURLConnection && connection.responseCode >= 400 -> return null
 			connection is HttpURLConnection && connection.responseCode >= 300 -> url = connection.getHeaderField("Location")
 			else -> return tryOrNull {
+				println("Downloading ${connection.contentLengthLong} Bytes...")
 				destination.apply {
 					outputStream().use { outputStream ->
 						connection.getInputStream().use { inputStream ->
