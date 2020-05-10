@@ -283,14 +283,19 @@ fun Entry.downloadLinks() =
 				?.third?.component1()
 				?.let { objectMapper.readTree(it) }
 				?.let {
-					it["download_links"]
-							.filter { it["link_class"].asText() == "SceneOrgFile" }
-							.map { it["url"].asText() }
-							.map { it.toSceneOrgDownloadUrl() } +
+					it.getDownloadUrls() +
 							it["external_links"]
 									.filter { it["link_class"].asText() == "YoutubeVideo" }
 									.map { it["url"].asText()!! }
 				} ?: emptyList()
+
+private fun JsonNode.getDownloadUrls() = this["download_links"]
+		.mapNotNull(::toRecognizedUrl)
+
+private fun toRecognizedUrl(node: JsonNode) = when (node["link_class"].asText()) {
+	"SceneOrgFile" -> node["url"].asText().toSceneOrgDownloadUrl()
+	else -> node["url"].asText()
+}
 
 private fun String.toSceneOrgDownloadUrl() =
 		"https://archive.scene.org/pub" + removePrefix("https://files.scene.org/view")
