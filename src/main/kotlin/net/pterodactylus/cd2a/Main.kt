@@ -138,7 +138,7 @@ fun Content.getRelevantFiles(): List<Content> =
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
 
-private val ffmpegLocation = "/usr/local/bin/ffmpeg"
+private const val ffmpegLocation = "/usr/local/bin/ffmpeg"
 private fun Content.extractAudioTracks(): List<Content> {
 	val mediaFile = identify(file) ?: return emptyList<Content>()
 			.also { println("*** could not identify $file.") }
