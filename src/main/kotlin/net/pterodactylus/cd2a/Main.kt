@@ -16,24 +16,25 @@ import java.util.stream.Stream
 const val baseDirectory = "/Users/bombe/Temp/dp"
 
 fun main(args: Array<String>) {
+	val entryProcessor: (Entry, Output) -> Unit = if ("--print" in args) { entry: Entry, output: Output -> output.println(entry.base().toString()) } else ::processEntry
 	getDemoparties()
 //			.filter { it.name == "Revision 2017" }
 //			.filter { it.year == 2017 }
 			.forEachProgress { index, total, party ->
 				startOutput {
 					println("Processing ${party.name} ($index/$total)...")
-					processDemoparty(party, this)
+					processDemoparty(party, this, entryProcessor)
 				}
 			}
 }
 
-fun processDemoparty(party: Demoparty, output: Output) {
+fun processDemoparty(party: Demoparty, output: Output, entryProcessor: (Entry, Output) -> Unit = ::processEntry) {
 	output.indent {
 		party
 				.compos
 				.forEachProgress { index, total, compo ->
 					println("Processing ${compo.name} ($index/$total)...")
-					processCompo(compo, this)
+					processCompo(compo, this, entryProcessor)
 				}
 	}
 }
@@ -41,12 +42,12 @@ fun processDemoparty(party: Demoparty, output: Output) {
 fun <T> Collection<T>.forEachProgress(block: (Int, Int, T) -> Unit) =
 		forEachIndexed { index, element -> block(index, size, element) }
 
-fun processCompo(compo: Compo, output: Output) {
+fun processCompo(compo: Compo, output: Output, entryProcessor: (Entry, Output) -> Unit = ::processEntry) {
 	output.indent {
 		println("Entries: ${compo.entries.size}")
 		val entries = compo.entries.filterNot { it.type == "graphics" }
 		println("Eligible Entries: ${entries.size}")
-		entries.forEach { processEntry(it, this) }
+		entries.forEach { entryProcessor(it, this) }
 	}
 }
 
