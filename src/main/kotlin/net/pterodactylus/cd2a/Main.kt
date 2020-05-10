@@ -134,6 +134,7 @@ fun Content.getRelevantFiles(): List<Content> =
 			name.isSid() -> listOf(this)
 			name.isUrl() -> listOf(this)
 			name.isVideo() -> extractAudioTracks()
+			name.isC64Executable() -> listOf(this)
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
 
@@ -219,6 +220,9 @@ fun String.isMusic() = toLowerCase()
 		.split(".").last() in listOf("mp3", "ogg", "flac", "opus", "aac", "m4a", "wav")
 
 fun String.isModule() = hasModuleSuffix() || hasModulePrefix()
+
+fun String.isC64Executable() = toLowerCase()
+		.split(".").last() in listOf("prg", "d64")
 
 fun String.hasModuleSuffix() = toLowerCase()
 		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx", "pt3")
