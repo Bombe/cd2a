@@ -217,7 +217,7 @@ fun String.isSid() = toLowerCase()
 		.split(".").last() in listOf("sid", "psid")
 
 fun String.isMusic() = toLowerCase()
-		.split(".").last() in listOf("mp3", "ogg", "flac", "opus", "aac", "m4a", "wav")
+		.split(".").last() in listOf("mp3", "ogg", "flac", "opus", "aac", "m4a", "wav", "au")
 
 fun String.isModule() = hasModuleSuffix() || hasModulePrefix()
 
