@@ -270,7 +270,9 @@ fun <R> tryOrNull(silent: Boolean = true, block: () -> R): R? = try {
 	null
 }
 
-data class Content(val entry: Entry, val name: String, val file: File)
+data class Content(val entry: Entry, val name: String, val file: File) {
+	override fun toString() = name
+}
 
 fun Entry.downloadLinks() =
 		"https://demozoo.org/api/v1/productions/$id/"
