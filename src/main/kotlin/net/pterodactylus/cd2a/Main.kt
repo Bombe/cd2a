@@ -57,7 +57,7 @@ fun processEntry(entry: Entry, indent: Indent = Indent()) {
 			if (downloadLinks.isEmpty()) return@advance
 			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
 			val relevantFiles = content.flatMap { it.getRelevantFiles() }
-			println("Relevant Files: ${relevantFiles.size}")
+			println("Relevant Files: ${relevantFiles.size} ($relevantFiles)")
 			if (relevantFiles.isEmpty()) {
 				println("Didn't get anything from ${content.joinToString { it.name }}.")
 				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@advance
