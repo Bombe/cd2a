@@ -225,7 +225,7 @@ fun String.isC64Executable() = toLowerCase()
 		.split(".").last() in listOf("prg", "d64")
 
 fun String.hasModuleSuffix() = toLowerCase()
-		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx", "pt3")
+		.split(".").last() in listOf("xm", "mod", "digi", "dbm", "it", "s3m", "oct", "med", "ahx", "thx", "pt3", "gdm")
 
 fun String.hasModulePrefix() = toLowerCase()
 		.split("/").last()
