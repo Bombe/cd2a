@@ -1,11 +1,17 @@
 package net.pterodactylus.cd2a
 
-import com.fasterxml.jackson.databind.*
-import com.github.kittinunf.fuel.*
-import java.io.*
-import java.net.*
-import java.nio.file.*
-import java.util.stream.*
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.github.kittinunf.fuel.httpGet
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import java.net.URLDecoder
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 const val baseDirectory = "/Users/bombe/Temp/dp"
 
@@ -14,20 +20,20 @@ fun main(args: Array<String>) {
 //			.filter { it.name == "Revision 2017" }
 //			.filter { it.year == 2017 }
 			.forEachProgress { index, total, party ->
-				println("Processing ${party.name} ($index/$total)...")
-				processDemoparty(party)
+				startOutput {
+					println("Processing ${party.name} ($index/$total)...")
+					processDemoparty(party, this)
+				}
 			}
 }
 
-fun processDemoparty(party: Demoparty) {
-	indent {
+fun processDemoparty(party: Demoparty, output: Output) {
+	output.indent {
 		party
 				.compos
 				.forEachProgress { index, total, compo ->
-					advance {
-						println("Processing ${compo.name} ($index/$total)...")
-						processCompo(compo, this)
-					}
+					println("Processing ${compo.name} ($index/$total)...")
+					processCompo(compo, this)
 				}
 	}
 }
@@ -35,8 +41,8 @@ fun processDemoparty(party: Demoparty) {
 fun <T> Collection<T>.forEachProgress(block: (Int, Int, T) -> Unit) =
 		forEachIndexed { index, element -> block(index, size, element) }
 
-fun processCompo(compo: Compo, indent: Indent = Indent()) {
-	indent.advance {
+fun processCompo(compo: Compo, output: Output) {
+	output.indent {
 		println("Entries: ${compo.entries.size}")
 		val entries = compo.entries.filterNot { it.type == "graphics" }
 		println("Eligible Entries: ${entries.size}")
@@ -44,28 +50,28 @@ fun processCompo(compo: Compo, indent: Indent = Indent()) {
 	}
 }
 
-fun processEntry(entry: Entry, indent: Indent = Indent()) {
-	with(indent) {
+fun processEntry(entry: Entry, output: Output) {
+	output.indent {
 		println("Entry: ${entry.artist} - ${entry.name} (${entry.id})")
 		if (entry.directory().toFile().list { _, name -> name.startsWith(entry.base().toString()) }?.isEmpty() == false) {
-			indent.advance { println("Skipping.") }
-			return
+			output.indent { println("Skipping.") }
+			return@indent
 		}
 		val downloadLinks = entry.downloadLinks()
-		indent.advance {
+		indent {
 			println("Download Links: ${downloadLinks.size}")
-			if (downloadLinks.isEmpty()) return@advance
-			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() })
-			val relevantFiles = content.flatMap { it.getRelevantFiles() }
+			if (downloadLinks.isEmpty()) return@indent
+			val content = entry.download(downloadLinks.filterNot { it.isYoutubeLink() }, this)
+			val relevantFiles = content.flatMap { it.getRelevantFiles(output) }
 			println("Relevant Files: ${relevantFiles.size} ($relevantFiles)")
 			if (relevantFiles.isEmpty()) {
 				println("Didn't get anything from ${content.joinToString { it.name }}.")
-				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@advance
+				val youtubeLink = downloadLinks.firstOrNull { it.isYoutubeLink() } ?: return@indent
 				println("Downloading from YouTube...")
 				entry.downloadYoutubeLink(youtubeLink)
 			} else {
 				println("Storing Files...")
-				relevantFiles.store(entry, this)
+				relevantFiles.store(entry)
 			}
 		}
 	}
@@ -87,40 +93,38 @@ private fun generateFilename(entry: Entry, suffix: String, nameWithoutSuffix: St
 				".$suffix"
 		).joinToString("")
 
-fun List<Content>.store(entry: Entry, indent: Indent) =
-		with(indent) {
-			forEach { content ->
-				fun generateName(number: Int? = null) =
-						content.name.split(".").let { nameParts ->
-							generateFilename(
-									entry,
-									nameParts.last(),
-									this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString(".") },
-									number)
-						}
-				entry.directory()
-						.toFile()
-						.apply { mkdirs() }
-						.let {
-							generateSequence(2 to File(it, generateName(null))) { (nextNumber, file) ->
-								((nextNumber + 1) to File(it, generateName(nextNumber)))
-										.takeIf { file.exists() }
-							}.last().second
-						}
-						.let {
-							Files.move(content.file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
-						}
-			}
+fun List<Content>.store(entry: Entry) =
+		forEach { content ->
+			fun generateName(number: Int? = null) =
+					content.name.split(".").let { nameParts ->
+						generateFilename(
+								entry,
+								nameParts.last(),
+								this@store.takeIf { size > 1 }?.let { nameParts.dropLast(1).joinToString(".") },
+								number)
+					}
+			entry.directory()
+					.toFile()
+					.apply { mkdirs() }
+					.let {
+						generateSequence(2 to File(it, generateName(null))) { (nextNumber, file) ->
+							((nextNumber + 1) to File(it, generateName(nextNumber)))
+									.takeIf { file.exists() }
+						}.last().second
+					}
+					.let {
+						Files.move(content.file.toPath(), it.toPath(), StandardCopyOption.REPLACE_EXISTING)
+					}
 		}
 
-fun Content.getRelevantFiles(): List<Content> =
+fun Content.getRelevantFiles(output: Output): List<Content> =
 		when {
-			name.toLowerCase().endsWith(".zip") || name.toLowerCase().endsWith(".apk") -> unpackZip()
-			name.toLowerCase().endsWith(".lha") -> unpackLharc()
-			name.toLowerCase().endsWith(".7z") -> unpack7Zip()
-			name.toLowerCase().endsWith(".rar") -> unpackRar()
-			name.toLowerCase().endsWith(".tar") -> unpackTar()
-			listOf(".tar.gz", ".tgz").any { name.endsWith(it) } -> unpackTarGz()
+			name.toLowerCase().endsWith(".zip") || name.toLowerCase().endsWith(".apk") -> unpackZip(output)
+			name.toLowerCase().endsWith(".lha") -> unpackLharc(output)
+			name.toLowerCase().endsWith(".7z") -> unpack7Zip(output)
+			name.toLowerCase().endsWith(".rar") -> unpackRar(output)
+			name.toLowerCase().endsWith(".tar") -> unpackTar(output)
+			listOf(".tar.gz", ".tgz").any { name.endsWith(it) } -> unpackTarGz(output)
 			name.isMusic() -> listOf(this)
 			name.toLowerCase().split("/").last().split(".").first() in listOf("xm", "mod", "thx") -> {
 				val paths = name.split("/")
@@ -128,61 +132,62 @@ fun Content.getRelevantFiles(): List<Content> =
 				val newFile = paths.last().split(".").let {
 					it.drop(1) + it.first()
 				}.joinToString(".")
-				Content(entry, (path + newFile).joinToString("/"), file).getRelevantFiles()
+				Content(entry, (path + newFile).joinToString("/"), file).getRelevantFiles(output)
 			}
 			name.isModule() -> listOf(this)
 			name.isSid() -> listOf(this)
 			name.isUrl() -> listOf(this)
-			name.isVideo() -> extractAudioTracks()
+			name.isVideo() -> extractAudioTracks(output)
 			name.isC64Executable() -> listOf(this)
 			else -> emptyList<Content>().also { this@getRelevantFiles.remove() }
 		}
 
 private const val ffmpegLocation = "/usr/local/bin/ffmpeg"
-private fun Content.extractAudioTracks(): List<Content> {
-	val mediaFile = identify(file) ?: return emptyList<Content>()
-			.also { println("*** could not identify $file.") }
-			.also { this@extractAudioTracks.remove() }
-	return when {
-		mediaFile.audioTracks.isEmpty() -> {
-			println("*** no audio tracks in $file: ${mediaFile.audioTracks.size}")
-			emptyList()
+private fun Content.extractAudioTracks(output: Output): List<Content> =
+		output.indent {
+			val mediaFile = identify(file) ?: return@indent emptyList<Content>()
+					.also { println("*** could not identify $file.") }
+					.also { this@extractAudioTracks.remove() }
+			return@indent when {
+				mediaFile.audioTracks.isEmpty() -> {
+					println("*** no audio tracks in $file: ${mediaFile.audioTracks.size}")
+					emptyList()
+				}
+				mediaFile.audioTracks.size > 1 -> {
+					println("*** invalid # of audio tracks in $file: ${mediaFile.audioTracks.size}")
+					emptyList()
+				}
+				else -> tempFile("audio-$name-", ".${mediaFile.audioTracks[0].type.suffix}").let { tempFile ->
+					runProcess(listOf(ffmpegLocation, "-y", "-i", file.toString(), "-acodec", "copy", "-vn", tempFile.toString()))
+					listOf(Content(entry, "$name.${mediaFile.audioTracks.first().type.suffix}", tempFile))
+				}
+			}.also { this@extractAudioTracks.remove() }
 		}
-		mediaFile.audioTracks.size > 1 -> {
-			println("*** invalid # of audio tracks in $file: ${mediaFile.audioTracks.size}")
-			emptyList()
-		}
-		else -> tempFile("audio-$name-", ".${mediaFile.audioTracks[0].type.suffix}").let { tempFile ->
-			runProcess(listOf(ffmpegLocation, "-y", "-i", file.toString(), "-acodec", "copy", "-vn", tempFile.toString()))
-			listOf(Content(entry, "$name.${mediaFile.audioTracks.first().type.suffix}", tempFile))
-		}
-	}.also { this@extractAudioTracks.remove() }
-}
 
 const val unzipLocation = "/usr/bin/unzip"
-fun Content.unpackZip() =
-		unpack("zip") { listOf(unzipLocation, "-o", file.toString()) }
+fun Content.unpackZip(output: Output) =
+		unpack("zip", output) { listOf(unzipLocation, "-o", file.toString()) }
 
 const val tarLocation = "/usr/bin/tar"
-fun Content.unpackTar() =
-		unpack("tar") { listOf(tarLocation, "-x", "-f", file.toString()) }
+fun Content.unpackTar(output: Output) =
+		unpack("tar", output) { listOf(tarLocation, "-x", "-f", file.toString()) }
 
-fun Content.unpackTarGz() =
-		unpack("targz") { listOf(tarLocation, "-x", "-z", "-f", file.toString()) }
+fun Content.unpackTarGz(output: Output) =
+		unpack("targz", output) { listOf(tarLocation, "-x", "-z", "-f", file.toString()) }
 
 const val lharcLocation = "/usr/local/bin/lha"
-fun Content.unpackLharc() =
-		unpack("lha") { listOf(lharcLocation, "x", file.absolutePath) }
+fun Content.unpackLharc(output: Output) =
+		unpack("lha", output) { listOf(lharcLocation, "x", file.absolutePath) }
 
 const val sevenZipLocation = "/usr/local/bin/7z"
-fun Content.unpack7Zip() =
-		unpack("7zip") { listOf(sevenZipLocation, "x", file.absolutePath) }
+fun Content.unpack7Zip(output: Output) =
+		unpack("7zip", output) { listOf(sevenZipLocation, "x", file.absolutePath) }
 
 const val unrarLocation = "/usr/local/bin/unrar"
-fun Content.unpackRar() =
-		unpack("rar") { listOf(unrarLocation, "x", file.absolutePath) }
+fun Content.unpackRar(output: Output) =
+		unpack("rar", output) { listOf(unrarLocation, "x", file.absolutePath) }
 
-fun Content.unpack(algorithm: String, command: () -> List<String>) =
+fun Content.unpack(algorithm: String, output: Output, command: () -> List<String>) =
 		tempFile("$algorithm-$name-", ".out")
 				.apply {
 					delete()
@@ -199,7 +204,7 @@ fun Content.unpack(algorithm: String, command: () -> List<String>) =
 						Content(entry, path.fileName.toString().replace("/", "-"), destination)
 					}
 							.also { this@unpack.remove() }
-							.flatMap(Content::getRelevantFiles)
+							.flatMap { it.getRelevantFiles(output) }
 				}
 
 fun <T> Stream<T>.toList(): List<T> = collect(Collectors.toList())
@@ -231,35 +236,37 @@ fun String.hasModulePrefix() = toLowerCase()
 		.split("/").last()
 		.split(".").first() in listOf("xm", "mod", "thx")
 
-fun Entry.download(links: List<String>) =
+fun Entry.download(links: List<String>, output: Output) =
 		links.mapNotNull { link ->
 			tryOrNull {
 				tempFile("$name-", "-${link.split("/").last()}")
-						.let { link.download(it) ?: it.delete().let { null } }
+						.let { link.download(it, output) ?: it.delete().let { null } }
 						?.let { Content(this, link.split("/").last().decode(), it) }
 			}
 		}
 
-fun String.download(destination: File): File? {
-	var url = this
-	while (true) {
-		val connection = URL(url).openConnection()
-		when {
-			connection is HttpURLConnection && connection.responseCode >= 400 -> return null
-			connection is HttpURLConnection && connection.responseCode >= 300 -> url = connection.getHeaderField("Location")
-			else -> return tryOrNull {
-				println("Downloading ${connection.contentLengthLong} Bytes...")
-				destination.apply {
-					outputStream().use { outputStream ->
-						connection.getInputStream().use { inputStream ->
-							inputStream.copyTo(outputStream)
+fun String.download(destination: File, output: Output): File? =
+	output.indent {
+		var url = this@download
+		while (true) {
+			val connection = URL(url).openConnection()
+			when {
+				connection is HttpURLConnection && connection.responseCode >= 400 -> return@indent null
+				connection is HttpURLConnection && connection.responseCode >= 300 -> url = connection.getHeaderField("Location")
+				else -> return@indent tryOrNull {
+					println("Downloading ${connection.contentLengthLong} Bytes...")
+					destination.apply {
+						outputStream().use { outputStream ->
+							connection.getInputStream().use { inputStream ->
+								inputStream.copyTo(outputStream)
+							}
 						}
 					}
 				}
 			}
 		}
+		null
 	}
-}
 
 fun String.decode() = URLDecoder.decode(this, "UTF-8")!!
 
@@ -378,11 +385,3 @@ private val JsonNode.text get() = takeUnless { it.isNull }?.let(JsonNode::asText
 val Int.track get() = "%02d".format(this)
 
 data class Demoparty(val id: Long, val url: String, val name: String, val year: Int)
-
-class Indent(private val indent: Int = 0) {
-	private operator fun String.times(count: Int) = 0.until(count).joinToString("") { this }
-	fun println(text: String) = System.out.println("  " * indent + text)
-	fun advance(block: Indent.() -> Unit) = block(Indent(indent + 1))
-}
-
-fun indent(block: Indent.() -> Unit) = Indent(-1).advance(block)
